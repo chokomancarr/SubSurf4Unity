@@ -1,0 +1,15 @@
+﻿<Properties StartupItem="Assembly-CSharp.csproj">
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" PreferredExecutionTarget="Unity.Instance.Unity Editor" />
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\Editor\CreateSubSurfData.cs">
+    <Files>
+      <File FileName="Assets\SubSurf1.cs" Line="263" Column="4" />
+      <File FileName="Assets\SubSurfMod.cs" Line="252" Column="19" />
+      <File FileName="Assets\Editor\SubSurfEditor.cs" Line="19" Column="67" />
+      <File FileName="Assets\Editor\CreateSubSurfData.cs" Line="35" Column="3" />
+    </Files>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+</Properties>
