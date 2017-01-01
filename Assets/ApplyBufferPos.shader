@@ -3,6 +3,7 @@
 	Properties
 	{
 		_MainTex ("Texture", 2D) = "white" {}
+		_l ("lerp", Range(0.0, 1.0)) = 1
 	}
 		SubShader
 	{
@@ -11,6 +12,8 @@
 
 		Pass
 		{
+			//Cull Front
+
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
@@ -28,17 +31,18 @@
 			{
 				float4 vertex : POSITION;
 				float2 uv : TEXCOORD0;
-				float2 uv4 : TEXCOORD3;
+				float2 uv2 : TEXCOORD1;
 			};
 
 			struct v2f
 			{
-				float2 uv : TEXCOORD0;
+				float2 uv : TEXCOORD2;
 				UNITY_FOG_COORDS(1)
 				float4 vertex : SV_POSITION;
-				float4 dat : TEXCOORD2;
+				float4 dat : TEXCOORD3;
 			};
 
+			fixed _l;
 			sampler2D _MainTex;
 			float4 _MainTex_ST;
 			StructuredBuffer<oriBuffer> ssBuffer;
@@ -47,9 +51,9 @@
 			v2f vert (appdata v)
 			{
 				v2f o;
-				int i = round(v.uv4.x * 100 + v.uv4.y * 10000);
+				int i = round(v.uv2.x * 100 + v.uv2.y * 10000);
 				float4 c = float4(ssBuffer[i].x, ssBuffer[i].y, ssBuffer[i].z, 1);
-				o.vertex = mul(UNITY_MATRIX_MVP, c);
+				o.vertex = mul(UNITY_MATRIX_MVP, lerp(v.vertex, c, _l));
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
 				UNITY_TRANSFER_FOG(o, o.vertex);
 				o.dat = c;

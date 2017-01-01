@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 
 public class SubSurfRead : MonoBehaviour {
 
+    public bool debug;
+
 	public Object _o;
 	public string _s;
     //public int _txl = 1;
@@ -144,11 +146,14 @@ public class SubSurfRead : MonoBehaviour {
             if (invX) vv.x = -vv.x;
             if (invY) vv.y = -vv.y;
             if (invZ) vv.z = -vv.z;
-            Debug.DrawLine(o2w.transform.TransformPoint(vv), o2w.transform.TransformPoint(vv) + Vector3.up * 0.1f, Color.yellow, 5);
+            if (debug) Debug.DrawLine(o2w.transform.TransformPoint(vv), o2w.transform.TransformPoint(vv) + Vector3.up * 0.1f, Color.yellow, 5);
         }
-        for (int y = oriV.Length - 1; y >= 0; y--)
+        if (debug)
         {
-            Debug.DrawLine(oriV[y], oriV[y] + Vector3.up * 0.1f, Color.red);
+            for (int y = oriV.Length - 1; y >= 0; y--)
+            {
+                Debug.DrawLine(oriV[y], oriV[y] + Vector3.up * 0.1f, Color.red);
+            }
         }
 
         for (int y = oriV.Length - 1; y >= 0; y--)
@@ -177,11 +182,11 @@ public class SubSurfRead : MonoBehaviour {
                 //Debug.DrawLine(oriV[y], oriV[y] + Vector3.up * 0.1f, Color.red);
             }
         }
-        oriMesh.uv = uvs;
         oriBaked = new Vector3[oriVerts.Length];
         print("total real verts " + oriV.Length);
         oriMesh.triangles = new int[0];
         oriMesh.SetIndices(idx, MeshTopology.Points, 0);
+        oriMesh.uv = uvs;
 
         oriRBuffer[] b = new oriRBuffer[oriBaked.Length];
         for (int q = oriBaked.Length - 1; q >= 0; q--)
@@ -340,9 +345,10 @@ public class SubSurfRead : MonoBehaviour {
         bool warn = false;
         for (int v2 = verts2.Length - 1; v2 >= 0; v2--)
         {
+            Vector3 vv = (new Vector3(finvX ? -verts2[v2].x : verts2[v2].x, finvY ? -verts2[v2].y : verts2[v2].y, finvZ ? -verts2[v2].z : verts2[v2].z));
             for (int v = finalVerts.Length - 1; v >= 0; v--)
             {
-                if (D(oriMeshR.transform.TransformPoint(finalVerts[v]), verts2[v2]) < 0.001f)
+                if (D((finalVerts[v]), vv) < 0.001f)
                 {
                     float y = Mathf.Floor(v / 100f);
                     uvs[v2] = new Vector2((v - y*100)*0.01f, y*0.01f);
@@ -352,20 +358,20 @@ public class SubSurfRead : MonoBehaviour {
                 }
             }
             warn = true;
-            Debug.LogWarning("vert " + v2 + "@ " + verts2[v2] + "no match");
-            Debug.DrawLine(finalMeshF.transform.TransformPoint(verts2[v2]) + Vector3.up * -0.1f, finalMeshF.transform.TransformPoint(verts2[v2]) + Vector3.up * 0.1f, Color.yellow, 100);
+            Debug.LogWarning("vert " + v2 + "@ " + vv + "no match");
+            if (debug) Debug.DrawLine(vv + Vector3.up * -0.1f, vv + Vector3.up * 0.1f, Color.black, 100);
         found:;
         }
-        if (warn)
+        if (warn && debug)
         {
-            //for (int v3 = finalVerts.Length - 1; v3 >= 0; v3--)
-            //{
-                //Debug.Log("vert " + v3 + "@ " + finalVerts[v3]);
-            //    Debug.DrawLine(finalVerts[v3] + Vector3.right * -0.1f, finalVerts[v3] + Vector3.right * 0.1f, Color.green, 100);
-            //}
+            for (int v3 = finalVerts.Length - 1; v3 >= 0; v3--)
+            {
+                Debug.Log("vert " + v3 + "@ " + finalVerts[v3]);
+                Debug.DrawLine(finalVerts[v3] + Vector3.right * -0.1f, finalVerts[v3] + Vector3.right * 0.1f, Color.blue, 100);
+            }
         }
         print(matches + " matches found");
-        finalMesh.uv4 = uvs;
+        finalMesh.uv2 = uvs;
 
         doRead = true;
     }
@@ -444,9 +450,10 @@ public class SubSurfRead : MonoBehaviour {
                     Debug.LogWarning("data not set for " + q);
                 else
                 {
+                    Vector3 p = new Vector3(b[q].x, b[q].y, b[q].z);
                     //oriVerts[q].pos = (new Vector3(finvX? -b[q].y : b[q].y, finvY ? -b[q].z : b[q].z, finvZ ? -b[q].x : b[q].x));
-                    oriVerts[q].pos = (new Vector3(finvX ? -b[q].x : b[q].x, finvY ? -b[q].y : b[q].y, finvZ ? -b[q].z : b[q].z));
-                    Vector3 p = (oriVerts[q].pos);
+                    //oriVerts[q].pos = (new Vector3(finvX ? -b[q].x : b[q].x, finvY ? -b[q].y : b[q].y, finvZ ? -b[q].z : b[q].z));
+                    oriVerts[q].pos = new Vector3(b[q].x, b[q].y, b[q].z);
                     oriVerts[q].pos = finalMeshF.transform.InverseTransformPoint((oriVerts[q].pos));
                     //Debug.DrawLine(p, p + Vector3.up*0.1f, Color.white);
                     //foreach (int ii in oriVerts[q].connIndexs)
@@ -454,9 +461,12 @@ public class SubSurfRead : MonoBehaviour {
                     //    Debug.DrawLine(p, finalMeshF.transform.TransformPoint(oriMeshR.transform.TransformPoint(oriVerts[ii].pos)), Color.white);
                     //}
                     b[q].w = 0;
-                    Debug.DrawLine(p - Vector3.up * 0.2f, p + Vector3.up * 0.2f, Color.white);
-                    Debug.DrawLine(p - Vector3.right * 0.2f, p + Vector3.right * 0.2f, Color.white);
-                    Debug.DrawLine(p - Vector3.forward * 0.2f, p + Vector3.forward * 0.2f, Color.white);
+                    if (debug)
+                    {
+                        Debug.DrawLine(p - Vector3.up * 0.2f, p + Vector3.up * 0.2f, Color.green);
+                        Debug.DrawLine(p - Vector3.right * 0.2f, p + Vector3.right * 0.2f, Color.green);
+                        Debug.DrawLine(p - Vector3.forward * 0.2f, p + Vector3.forward * 0.2f, Color.green);
+                    }
                 }
             }
             oriReadBuff.SetData(b);

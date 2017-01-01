@@ -58,7 +58,7 @@ class KTMExporter():
                         self.write(file, " {}".format(obj.data.loops[loop_index].vertex_index))
                     self.write(file, "\r\n")
                 self.write(file, "\r\n  ]\r\n")
-        sys.exit()
+        #sys.exit()
 
     def write (self, file, _str):
         file.write(_str.encode())
