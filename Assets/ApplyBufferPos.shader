@@ -47,7 +47,7 @@
 			v2f vert (appdata v)
 			{
 				v2f o;
-				int i = round(v.uv4.x*100);
+				int i = round(v.uv4.x * 100 + v.uv4.y * 10000);
 				float4 c = float4(ssBuffer[i].x, ssBuffer[i].y, ssBuffer[i].z, 1);
 				o.vertex = mul(UNITY_MATRIX_MVP, c);
 				o.uv = TRANSFORM_TEX(v.uv, _MainTex);

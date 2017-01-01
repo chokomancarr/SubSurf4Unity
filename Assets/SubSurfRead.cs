@@ -10,14 +10,18 @@ public class SubSurfRead : MonoBehaviour {
     //public RenderTexture _rt;
     //public Camera _cam;
     public SubSurfWrite1 _wrScr;
-    
+    public bool invX, invY, invZ;
+    public bool finvX, finvY, finvZ;
+
     public SkinnedMeshRenderer oriMeshR;
 	public Mesh oriMesh;
     public Vector3[] oriBaked;
     public Transform o2w;
+    [HideInInspector]
 	public string oriMeshData;
-	public string[] oriMeshDataSplit;
-    public int oriSize;
+    [HideInInspector]
+    public string[] oriMeshDataSplit;
+    //public int oriSize;
 
     struct oriRBuffer
     {
@@ -115,7 +119,7 @@ public class SubSurfRead : MonoBehaviour {
         oriMesh = oriMeshR.sharedMesh;
         Vector3[] oriV = oriMesh.vertices;
         Vector2[] uvs = new Vector2[oriV.Length];
-        oriSize = GetClosestPw2(Mathf.Sqrt(oriVerts.Length));
+        //oriSize = GetClosestPw2(Mathf.Sqrt(oriVerts.Length));
 
         /*
         _rt = new RenderTexture(oriSize, oriSize, 16, RenderTextureFormat.ARGBFloat);
@@ -134,28 +138,55 @@ public class SubSurfRead : MonoBehaviour {
         //Dictionary<int, int> remap = new Dictionary<int, int>();
         int[] idx = new int[oriV.Length];
 
+        for (int a = oriVerts.Length - 1; a >= 0; a--)
+        {
+            Vector3 vv = oriVerts[a].pos;
+            if (invX) vv.x = -vv.x;
+            if (invY) vv.y = -vv.y;
+            if (invZ) vv.z = -vv.z;
+            Debug.DrawLine(o2w.transform.TransformPoint(vv), o2w.transform.TransformPoint(vv) + Vector3.up * 0.1f, Color.yellow, 5);
+        }
+        for (int y = oriV.Length - 1; y >= 0; y--)
+        {
+            Debug.DrawLine(oriV[y], oriV[y] + Vector3.up * 0.1f, Color.red);
+        }
+
         for (int y = oriV.Length - 1; y >= 0; y--)
         {
             idx[y] = y;
             bool e = false;
             for (int a = oriVerts.Length - 1; a >= 0; a--)
             {
-                if (D(oriV[y], oriVerts[a].pos) < 0.001f)
+                Vector3 vv = oriVerts[a].pos;
+                if (invX) vv.x = -vv.x;
+                if (invY) vv.y = -vv.y;
+                if (invZ) vv.z = -vv.z;
+                if (D(oriV[y], vv) < 0.001f)
                 {
-                    uvs[y] = new Vector2(y*0.01f, 0);//new Vector2(((a % oriSize) + 0.5f) / oriSize, 1-(((a / oriSize) + 0.5f) / oriSize));
+                    float yy = Mathf.Floor(y / 100f);
+                    uvs[y] = new Vector2((y - yy*100)*0.01f, yy*0.01f);//new Vector2(((a % oriSize) + 0.5f) / oriSize, 1-(((a / oriSize) + 0.5f) / oriSize));
                     //remap[a] = y;
                     oriVerts[a].i = y;
                     e = true;
                     break;
                 }
             }
-            if (!e) print("? " + oriV[y]);
+            if (!e)
+            {
+                Debug.LogError("? " + oriV[y]);
+                //Debug.DrawLine(oriV[y], oriV[y] + Vector3.up * 0.1f, Color.red);
+            }
         }
         oriMesh.uv = uvs;
         oriBaked = new Vector3[oriVerts.Length];
         print("total real verts " + oriV.Length);
         oriMesh.triangles = new int[0];
         oriMesh.SetIndices(idx, MeshTopology.Points, 0);
+
+        oriRBuffer[] b = new oriRBuffer[oriBaked.Length];
+        for (int q = oriBaked.Length - 1; q >= 0; q--)
+            b[q].w = q;
+        oriReadBuff.SetData(b);
     }
 
     void OnApplicationQuit()
@@ -313,7 +344,8 @@ public class SubSurfRead : MonoBehaviour {
             {
                 if (D(oriMeshR.transform.TransformPoint(finalVerts[v]), verts2[v2]) < 0.001f)
                 {
-                    uvs[v2] = new Vector2(v*0.01f, 0);
+                    float y = Mathf.Floor(v / 100f);
+                    uvs[v2] = new Vector2((v - y*100)*0.01f, y*0.01f);
                     matches++;
                     //Debug.Log(v2 + "->" + uvs[v2].x*100);
                     goto found;
@@ -326,11 +358,11 @@ public class SubSurfRead : MonoBehaviour {
         }
         if (warn)
         {
-            for (int v3 = finalVerts.Length - 1; v3 >= 0; v3--)
-            {
+            //for (int v3 = finalVerts.Length - 1; v3 >= 0; v3--)
+            //{
                 //Debug.Log("vert " + v3 + "@ " + finalVerts[v3]);
-                Debug.DrawLine(finalVerts[v3] + Vector3.right * -0.1f, finalVerts[v3] + Vector3.right * 0.1f, Color.green, 100);
-            }
+            //    Debug.DrawLine(finalVerts[v3] + Vector3.right * -0.1f, finalVerts[v3] + Vector3.right * 0.1f, Color.green, 100);
+            //}
         }
         print(matches + " matches found");
         finalMesh.uv4 = uvs;
@@ -381,11 +413,12 @@ public class SubSurfRead : MonoBehaviour {
     // enable ori verts for skinning
     void Update ()
     {
+        //if (Input.GetKeyDown(KeyCode.Space))
+            UpdateSS();
         //oriMeshR.enabled = true;
     }
 
 	void LateUpdate () {
-        UpdateSS();
         //oriMeshR.enabled = false;
 	}
 
@@ -401,31 +434,44 @@ public class SubSurfRead : MonoBehaviour {
         {
             oriRBuffer[] b = new oriRBuffer[oriBaked.Length];
             oriReadBuff.GetData(b);
-            for (int q = oriVerts.Length - 1; q >= 0; q--)
+            for (int q = oriBaked.Length - 1; q >= 0; q--)
             {
                 //int xx = (((int)c[q].a) & 4) >> 2;
                 //int yy = (((int)c[q].a) & 2) >> 1;
                 //int zz = ((int)c[q].a) & 1;
                 //oriBaked[q] = new Vector3(c[q].r * (xx*2-1), c[q].g * (yy*2-1), c[q].b * (zz*2-1));
-                if (b[q].w == 0)
+                if (Mathf.RoundToInt(b[q].w) != q)
                     Debug.LogWarning("data not set for " + q);
                 else
                 {
-                    oriVerts[q].pos = (new Vector3(b[q].y, b[q].z, -b[q].x));
-
-                    Vector3 p = finalMeshF.transform.TransformPoint(oriMeshR.transform.TransformPoint(oriVerts[q].pos));
-                    foreach (int ii in oriVerts[q].connIndexs)
-                    {
-                        Debug.DrawLine(p, finalMeshF.transform.TransformPoint(oriMeshR.transform.TransformPoint(oriVerts[ii].pos)), Color.white);
-                    }
-                    //Debug.DrawLine(p - Vector3.up * 0.2f, p + Vector3.up * 0.2f, Color.white);
-                    //Debug.DrawLine(p - Vector3.right * 0.2f, p + Vector3.right * 0.2f, Color.white);
-                    //Debug.DrawLine(p - Vector3.forward * 0.2f, p + Vector3.forward * 0.2f, Color.white);
+                    //oriVerts[q].pos = (new Vector3(finvX? -b[q].y : b[q].y, finvY ? -b[q].z : b[q].z, finvZ ? -b[q].x : b[q].x));
+                    oriVerts[q].pos = (new Vector3(finvX ? -b[q].x : b[q].x, finvY ? -b[q].y : b[q].y, finvZ ? -b[q].z : b[q].z));
+                    Vector3 p = (oriVerts[q].pos);
+                    oriVerts[q].pos = finalMeshF.transform.InverseTransformPoint((oriVerts[q].pos));
+                    //Debug.DrawLine(p, p + Vector3.up*0.1f, Color.white);
+                    //foreach (int ii in oriVerts[q].connIndexs)
+                    //{
+                    //    Debug.DrawLine(p, finalMeshF.transform.TransformPoint(oriMeshR.transform.TransformPoint(oriVerts[ii].pos)), Color.white);
+                    //}
+                    b[q].w = 0;
+                    Debug.DrawLine(p - Vector3.up * 0.2f, p + Vector3.up * 0.2f, Color.white);
+                    Debug.DrawLine(p - Vector3.right * 0.2f, p + Vector3.right * 0.2f, Color.white);
+                    Debug.DrawLine(p - Vector3.forward * 0.2f, p + Vector3.forward * 0.2f, Color.white);
                 }
             }
+            oriReadBuff.SetData(b);
             //print(oriVerts[0].pos);
             //Graphics.SetRenderTarget(null);
         }
+        /*
+        else
+        {
+            oriRBuffer[] b = new oriRBuffer[oriBaked.Length];
+            for (int q = oriBaked.Length - 1; q >= 0; q--)
+                b[q].w = q;
+            oriReadBuff.SetData(b);
+        }
+        */
 
         foreach (SS_FaceV f in subVertsF)
 			f.GetPos(this);
@@ -514,9 +560,9 @@ public class SubSurfRead : MonoBehaviour {
 			scr.finalVerts[id] = (_f + 2 * _r + (fl - 3) * p) / fl;
             float s = 0.1f;
             
-			Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts [id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.green);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.green);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.green);
+			//Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts [id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.green);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.green);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.green);
         }
     }
     public class SS_EdgeV //type 1
@@ -528,9 +574,9 @@ public class SubSurfRead : MonoBehaviour {
 			scr.finalVerts[id] = 0.25f * (scr.oriVerts[ve1].pos + scr.oriVerts[ve2].pos + scr.finalVerts[vf1] + scr.finalVerts[vf2]);
             float s = 0.1f;
 
-            Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts [id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.red);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.red);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.red);
+            //Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts [id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.red);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.red);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.red);
         }
     }
 
@@ -549,9 +595,9 @@ public class SubSurfRead : MonoBehaviour {
 			scr.finalVerts[id] = x / f.sides;
             float s = 0.1f;
 
-            Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.blue);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.blue);
-            Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.blue);
+            //Debug.DrawLine (scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.up * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.up * s, Color.blue);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.right * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.right * s, Color.blue);
+            //Debug.DrawLine(scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) - Vector3.forward * s, scr.finalMeshF.transform.TransformPoint(scr.finalVerts[id]) + Vector3.forward * s, Color.blue);
         }
     }
 

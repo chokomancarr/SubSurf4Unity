@@ -7,6 +7,8 @@
 
 		Pass
 	{
+		//Blend Zero One
+		ZTest Always
 		CGPROGRAM
 #pragma vertex vert
 #pragma fragment frag
@@ -27,7 +29,7 @@
 	struct v2f
 	{
 		float4 vertex : SV_POSITION;
-		int i : TEXCOORD5;
+		int i : TEXCOORD1;
 		float4 dat : TEXCOORD2;
 	};
 
@@ -36,9 +38,11 @@
 	v2f vert(appdata v)
 	{
 		v2f o;
-		o.vertex =  mul(UNITY_MATRIX_MVP, v.vertex);
-		o.i = round(v.uv.x * 100);
-		o.dat = v.vertex;
+		o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
+		//o.vertex.x = 0;
+		//o.vertex.y = 0;
+		o.i = round(v.uv.x * 100 + v.uv.y*10000);
+		o.dat = mul(unity_ObjectToWorld, v.vertex);
 		return o;
 	}
 
@@ -48,7 +52,7 @@
 		b.x = i.dat.x;
 		b.y = i.dat.y;
 		b.z = i.dat.z;
-		b.w = 0.5;
+		b.w = i.i;
 		ssBuffer[i.i] = b;
 		return fixed4(1, 0, 0, 1);
 	}
